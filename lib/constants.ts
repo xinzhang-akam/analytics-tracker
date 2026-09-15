@@ -1,0 +1,26 @@
+// Predefined step names as per BRD (in order for dashboard display)
+export const STEP_NAMES = [
+  'Create BRD',
+  'Create Wireframe',
+  'Data Integration',
+  'Create Data Source',
+  'Create Dashboard',
+  'User Feedback',
+  'Launch Dashboard',
+  'Launch SS Data Source',
+] as const;
+
+export type StepName = typeof STEP_NAMES[number];
+
+// Release steps where start date = end date
+export const RELEASE_STEPS: StepName[] = ['Launch Dashboard', 'Launch SS Data Source'];
+
+// Domain categories
+export const DOMAIN_CATEGORIES = ['Product', 'Networks', 'R&D', 'Internal'] as const;
+
+export type DomainCategory = typeof DOMAIN_CATEGORIES[number];
+
+// Helper function to check if a step is a release step
+export function isReleaseStep(stepName: string): boolean {
+  return RELEASE_STEPS.includes(stepName as StepName);
+}

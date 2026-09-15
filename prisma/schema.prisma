@@ -1,0 +1,76 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Project {
+  id                     String        @id @default(uuid())
+  name                   String
+  jiraTicketUrl          String?
+  domainCategory         String
+  owner                  String
+  status                 ProjectStatus @default(NOT_STARTED)
+  baselineProdDate       DateTime?
+  currentTargetProdDate  DateTime?
+  totalDateShifts        Int           @default(0)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  steps                  ProjectStep[]
+
+  @@map("projects")
+}
+
+model ProjectStep {
+  id                   String          @id @default(uuid())
+  projectId            String
+  stepName             String
+  sequenceOrder        Int
+  workdaysRequired     Int
+  startDate            DateTime
+  endDate              DateTime
+  baselineEndDate      DateTime?
+  status               StepStatus      @default(NOT_STARTED)
+  shiftCount           Int             @default(0)
+  reasonForDelay       String?
+
+  project              Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  dateChangeLogs       DateChangeLog[]
+
+  @@map("project_steps")
+}
+
+model DateChangeLog {
+  id                String   @id @default(uuid())
+  stepId            String
+  previousEndDate   DateTime
+  newEndDate        DateTime
+  daysShifted       Int
+  reasonForChange   String
+  timestamp         DateTime @default(now())
+
+  step              ProjectStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  @@map("date_change_logs")
+}
+
+enum ProjectStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+}
+
+enum StepStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+}
