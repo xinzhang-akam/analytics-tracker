@@ -10,6 +10,7 @@ interface Step {
   id: string;
   stepName: string;
   status: string;
+  reasonForDelay?: string | null;
 }
 
 interface Project {

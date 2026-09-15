@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { ProjectStatus, StepStatus } from '@prisma/client';
 import { addWorkdays } from '@/lib/workday-calculator';
 import { isReleaseStep } from '@/lib/constants';
 import { startOfDay, isBefore, isSameDay } from 'date-fns';
 
 // Helper function to calculate automated project status
-async function calculateProjectStatus(projectId: string): Promise<string> {
+async function calculateProjectStatus(projectId: string): Promise<ProjectStatus> {
   const steps = await prisma.projectStep.findMany({
     where: { projectId },
     orderBy: { sequenceOrder: 'desc' },
@@ -103,9 +104,9 @@ export async function POST(request: Request) {
 
     // Automated status logic: if start date <= today, status = IN_PROGRESS, else NOT_STARTED
     const today = startOfDay(new Date());
-    const autoStatus = isBefore(calculatedStartDate, today) || isSameDay(calculatedStartDate, today)
-      ? 'IN_PROGRESS'
-      : 'NOT_STARTED';
+    const autoStatus: StepStatus = isBefore(calculatedStartDate, today) || isSameDay(calculatedStartDate, today)
+      ? StepStatus.IN_PROGRESS
+      : StepStatus.NOT_STARTED;
 
     // Create the step
     const step = await prisma.projectStep.create({

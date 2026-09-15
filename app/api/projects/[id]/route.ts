@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { ProjectStatus } from '@prisma/client';
 
 // Helper function to calculate automated project status
-async function calculateProjectStatus(projectId: string): Promise<string> {
+async function calculateProjectStatus(projectId: string): Promise<ProjectStatus> {
   const steps = await prisma.projectStep.findMany({
     where: { projectId },
     orderBy: { sequenceOrder: 'desc' },
