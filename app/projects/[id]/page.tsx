@@ -4,7 +4,7 @@ import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { format, differenceInDays } from 'date-fns';
 import { STEP_NAMES, isReleaseStep } from '@/lib/constants';
-import { formatStatus } from '@/lib/formatters';
+import { formatStatus, parseLocalDate } from '@/lib/formatters';
 
 interface DateChangeLog {
   id: string;
@@ -201,7 +201,7 @@ export default function ProjectDetailPage({
     setEditingStep(step);
     setEditStepForm({
       status: step.status,
-      targetDate: format(new Date(step.endDate), 'yyyy-MM-dd'),
+      targetDate: format(parseLocalDate(step.endDate), 'yyyy-MM-dd'),
       reasonForChange: '',
     });
     setShowEditModal(true);
@@ -214,8 +214,8 @@ export default function ProjectDetailPage({
 
     // Check if target date changed from baseline
     const baselineEndDate = editingStep.baselineEndDate
-      ? format(new Date(editingStep.baselineEndDate), 'yyyy-MM-dd')
-      : format(new Date(editingStep.endDate), 'yyyy-MM-dd');
+      ? format(parseLocalDate(editingStep.baselineEndDate), 'yyyy-MM-dd')
+      : format(parseLocalDate(editingStep.endDate), 'yyyy-MM-dd');
     const targetDateChanged = editStepForm.targetDate !== baselineEndDate;
 
     // Validation: Future step completion
@@ -299,7 +299,7 @@ export default function ProjectDetailPage({
 
   const calculateDateShift = (baseline: string | null, current: string | null): number => {
     if (!baseline || !current) return 0;
-    return differenceInDays(new Date(current), new Date(baseline));
+    return differenceInDays(parseLocalDate(current), parseLocalDate(baseline));
   };
 
   if (loading) {
@@ -367,13 +367,13 @@ export default function ProjectDetailPage({
               {project.currentTargetProdDate ? (
                 <div>
                   <div className="text-lg font-semibold text-gray-900">
-                    {format(new Date(project.currentTargetProdDate), 'MMM dd, yyyy')}
+                    {format(parseLocalDate(project.currentTargetProdDate), 'MMM dd, yyyy')}
                   </div>
                   {goLiveDateShift !== 0 && project.baselineProdDate && (
                     <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
                       <div className="text-sm text-gray-700">
                         <span className="font-medium">Original: </span>
-                        {format(new Date(project.baselineProdDate), 'MMM dd, yyyy')}
+                        {format(parseLocalDate(project.baselineProdDate), 'MMM dd, yyyy')}
                       </div>
                       <div className="text-sm mt-1">
                         {goLiveDateShift > 0 ? (
@@ -475,25 +475,16 @@ export default function ProjectDetailPage({
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    #
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Step Name
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Workdays
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Start Date
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    End Date
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Date Shifted
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Status
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Target Date
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Days Shifted
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Actions
@@ -503,7 +494,7 @@ export default function ProjectDetailPage({
               <tbody className="bg-white divide-y divide-gray-200">
                 {project.steps.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-4 text-center text-gray-500">
+                    <td colSpan={5} className="px-4 py-4 text-center text-gray-500">
                       No steps added yet. Click "Add Step" to get started.
                     </td>
                   </tr>
@@ -516,18 +507,18 @@ export default function ProjectDetailPage({
 
                     return (
                       <tr key={step.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {step.sequenceOrder}
-                        </td>
                         <td className="px-4 py-3 text-sm text-gray-900">{step.stepName}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {step.workdaysRequired || 'N/A'}
+                        <td className="px-4 py-3">
+                          <span
+                            className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                              step.status
+                            )}`}
+                          >
+                            {formatStatus(step.status)}
+                          </span>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
-                          {format(new Date(step.startDate), 'MMM dd, yyyy')}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {format(new Date(step.endDate), 'MMM dd, yyyy')}
+                          {format(parseLocalDate(step.endDate), 'MMM dd, yyyy')}
                         </td>
                         <td className="px-4 py-3 text-sm">
                           {stepDateShift !== 0 ? (
@@ -542,15 +533,6 @@ export default function ProjectDetailPage({
                           ) : (
                             <span className="text-gray-400">0</span>
                           )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                              step.status
-                            )}`}
-                          >
-                            {formatStatus(step.status)}
-                          </span>
                         </td>
                         <td className="px-4 py-3 text-sm">
                           <button
@@ -619,8 +601,8 @@ export default function ProjectDetailPage({
                     Reason for Change
                     {editingStep &&
                       (editingStep.baselineEndDate
-                        ? format(new Date(editingStep.baselineEndDate), 'yyyy-MM-dd')
-                        : format(new Date(editingStep.endDate), 'yyyy-MM-dd')) !==
+                        ? format(parseLocalDate(editingStep.baselineEndDate), 'yyyy-MM-dd')
+                        : format(parseLocalDate(editingStep.endDate), 'yyyy-MM-dd')) !==
                         editStepForm.targetDate && ' *'}
                   </label>
                   <textarea

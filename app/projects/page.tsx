@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { DOMAIN_CATEGORIES } from '@/lib/constants';
-import { formatStatus } from '@/lib/formatters';
+import { formatStatus, parseLocalDate } from '@/lib/formatters';
 
 interface Project {
   id: string;
@@ -23,6 +23,7 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewProjectForm, setShowNewProjectForm] = useState(false);
+  const [domainFilter, setDomainFilter] = useState<string>('All Domains');
   const [newProject, setNewProject] = useState({
     name: '',
     jiraTicketUrl: '',
@@ -38,7 +39,14 @@ export default function ProjectsPage() {
     try {
       const response = await fetch('/api/projects');
       const data = await response.json();
-      setProjects(data);
+      // Sort by Go-Live Date (currentTargetProdDate) descending - latest first
+      const sortedData = data.sort((a: Project, b: Project) => {
+        if (!a.currentTargetProdDate && !b.currentTargetProdDate) return 0;
+        if (!a.currentTargetProdDate) return 1; // Projects without dates go to bottom
+        if (!b.currentTargetProdDate) return -1;
+        return new Date(b.currentTargetProdDate).getTime() - new Date(a.currentTargetProdDate).getTime();
+      });
+      setProjects(sortedData);
     } catch (error) {
       console.error('Error fetching projects:', error);
     } finally {
@@ -103,12 +111,17 @@ export default function ProjectsPage() {
 
   const calculateDateShift = (baseline: string | null, current: string | null): number => {
     if (!baseline || !current) return 0;
-    const baselineDate = new Date(baseline);
-    const currentDate = new Date(current);
+    const baselineDate = parseLocalDate(baseline);
+    const currentDate = parseLocalDate(current);
     const diffTime = currentDate.getTime() - baselineDate.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   };
+
+  // Filter projects by domain
+  const filteredProjects = domainFilter === 'All Domains'
+    ? projects
+    : projects.filter(project => project.domainCategory === domainFilter);
 
   if (loading) {
     return (
@@ -141,6 +154,24 @@ export default function ProjectsPage() {
             >
               Create Project
             </button>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-lg shadow mb-6">
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium text-gray-700">Filter by Domain:</label>
+            <select
+              value={domainFilter}
+              onChange={(e) => setDomainFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+            >
+              <option value="All Domains">All Domains</option>
+              {DOMAIN_CATEGORIES.map((domain) => (
+                <option key={domain} value={domain}>
+                  {domain}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -252,14 +283,16 @@ export default function ProjectsPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {projects.length === 0 ? (
+              {filteredProjects.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
-                    No projects found. Create your first project to get started.
+                    {domainFilter === 'All Domains'
+                      ? 'No projects found. Create your first project to get started.'
+                      : `No projects found in ${domainFilter} domain.`}
                   </td>
                 </tr>
               ) : (
-                projects.map((project) => {
+                filteredProjects.map((project) => {
                   const dateShift = calculateDateShift(
                     project.baselineProdDate,
                     project.currentTargetProdDate
@@ -300,7 +333,7 @@ export default function ProjectsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {project.currentTargetProdDate
-                          ? format(new Date(project.currentTargetProdDate), 'MMM dd, yyyy')
+                          ? format(parseLocalDate(project.currentTargetProdDate), 'MMM dd, yyyy')
                           : 'TBD'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
