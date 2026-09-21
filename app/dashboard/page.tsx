@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { format, addMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { addMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import Link from 'next/link';
 import { DOMAIN_CATEGORIES } from '@/lib/constants';
-import { formatStatus } from '@/lib/formatters';
+import { formatStatus, parseLocalDate, formatLocalDate } from '@/lib/formatters';
 
 interface Step {
   id: string;
@@ -98,7 +98,7 @@ export default function DashboardPage() {
     if (filters.dateRange !== 'all' && project.currentTargetProdDate) {
       const dateRange = getDateRangeFilter();
       if (dateRange) {
-        const targetDate = new Date(project.currentTargetProdDate);
+        const targetDate = parseLocalDate(project.currentTargetProdDate);
         if (!isWithinInterval(targetDate, { start: dateRange.start, end: dateRange.end })) {
           return false;
         }
@@ -399,20 +399,17 @@ export default function DashboardPage() {
                             {project.currentTargetProdDate ? (
                               <div>
                                 <div className="text-sm text-gray-900">
-                                  {format(
-                                    new Date(project.currentTargetProdDate),
-                                    'MMM dd, yyyy'
-                                  )}
+                                  {formatLocalDate(project.currentTargetProdDate)}
                                 </div>
                                 {project.baselineProdDate &&
                                   project.currentTargetProdDate !== project.baselineProdDate && (
                                     <div className="text-xs font-semibold mt-1">
-                                      {new Date(project.currentTargetProdDate) <
-                                      new Date(project.baselineProdDate) ? (
+                                      {parseLocalDate(project.currentTargetProdDate) <
+                                      parseLocalDate(project.baselineProdDate) ? (
                                         <span className="text-emerald-600">
                                           {Math.ceil(
-                                            (new Date(project.baselineProdDate).getTime() -
-                                              new Date(project.currentTargetProdDate).getTime()) /
+                                            (parseLocalDate(project.baselineProdDate).getTime() -
+                                              parseLocalDate(project.currentTargetProdDate).getTime()) /
                                               (1000 * 60 * 60 * 24)
                                           )}{' '}
                                           days early
@@ -421,8 +418,8 @@ export default function DashboardPage() {
                                         <span className="text-red-600">
                                           +
                                           {Math.ceil(
-                                            (new Date(project.currentTargetProdDate).getTime() -
-                                              new Date(project.baselineProdDate).getTime()) /
+                                            (parseLocalDate(project.currentTargetProdDate).getTime() -
+                                              parseLocalDate(project.baselineProdDate).getTime()) /
                                               (1000 * 60 * 60 * 24)
                                           )}{' '}
                                           days delayed

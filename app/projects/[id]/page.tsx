@@ -2,9 +2,9 @@
 
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { format, differenceInDays } from 'date-fns';
+import { differenceInDays } from 'date-fns';
 import { STEP_NAMES, isReleaseStep } from '@/lib/constants';
-import { formatStatus, parseLocalDate } from '@/lib/formatters';
+import { formatStatus, parseLocalDate, formatLocalDate, formatDateForInput } from '@/lib/formatters';
 
 interface DateChangeLog {
   id: string;
@@ -201,7 +201,7 @@ export default function ProjectDetailPage({
     setEditingStep(step);
     setEditStepForm({
       status: step.status,
-      targetDate: format(parseLocalDate(step.endDate), 'yyyy-MM-dd'),
+      targetDate: formatDateForInput(step.endDate),
       reasonForChange: '',
     });
     setShowEditModal(true);
@@ -214,13 +214,13 @@ export default function ProjectDetailPage({
 
     // Check if target date changed from baseline
     const baselineEndDate = editingStep.baselineEndDate
-      ? format(parseLocalDate(editingStep.baselineEndDate), 'yyyy-MM-dd')
-      : format(parseLocalDate(editingStep.endDate), 'yyyy-MM-dd');
+      ? formatDateForInput(editingStep.baselineEndDate)
+      : formatDateForInput(editingStep.endDate);
     const targetDateChanged = editStepForm.targetDate !== baselineEndDate;
 
     // Validation: Future step completion
     if (editStepForm.status === 'COMPLETED') {
-      const targetDate = new Date(editStepForm.targetDate);
+      const targetDate = parseLocalDate(editStepForm.targetDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       targetDate.setHours(0, 0, 0, 0);
@@ -367,13 +367,13 @@ export default function ProjectDetailPage({
               {project.currentTargetProdDate ? (
                 <div>
                   <div className="text-lg font-semibold text-gray-900">
-                    {format(parseLocalDate(project.currentTargetProdDate), 'MMM dd, yyyy')}
+                    {formatLocalDate(project.currentTargetProdDate)}
                   </div>
                   {goLiveDateShift !== 0 && project.baselineProdDate && (
                     <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
                       <div className="text-sm text-gray-700">
                         <span className="font-medium">Original: </span>
-                        {format(parseLocalDate(project.baselineProdDate), 'MMM dd, yyyy')}
+                        {formatLocalDate(project.baselineProdDate)}
                       </div>
                       <div className="text-sm mt-1">
                         {goLiveDateShift > 0 ? (
@@ -518,7 +518,7 @@ export default function ProjectDetailPage({
                           </span>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
-                          {format(parseLocalDate(step.endDate), 'MMM dd, yyyy')}
+                          {formatLocalDate(step.endDate)}
                         </td>
                         <td className="px-4 py-3 text-sm">
                           {stepDateShift !== 0 ? (
@@ -601,8 +601,8 @@ export default function ProjectDetailPage({
                     Reason for Change
                     {editingStep &&
                       (editingStep.baselineEndDate
-                        ? format(parseLocalDate(editingStep.baselineEndDate), 'yyyy-MM-dd')
-                        : format(parseLocalDate(editingStep.endDate), 'yyyy-MM-dd')) !==
+                        ? formatDateForInput(editingStep.baselineEndDate)
+                        : formatDateForInput(editingStep.endDate)) !==
                         editStepForm.targetDate && ' *'}
                   </label>
                   <textarea

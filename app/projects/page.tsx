@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { format } from 'date-fns';
 import { DOMAIN_CATEGORIES } from '@/lib/constants';
-import { formatStatus, parseLocalDate } from '@/lib/formatters';
+import { formatStatus, parseLocalDate, formatLocalDate } from '@/lib/formatters';
 
 interface Project {
   id: string;
@@ -44,7 +43,7 @@ export default function ProjectsPage() {
         if (!a.currentTargetProdDate && !b.currentTargetProdDate) return 0;
         if (!a.currentTargetProdDate) return 1; // Projects without dates go to bottom
         if (!b.currentTargetProdDate) return -1;
-        return new Date(b.currentTargetProdDate).getTime() - new Date(a.currentTargetProdDate).getTime();
+        return parseLocalDate(b.currentTargetProdDate).getTime() - parseLocalDate(a.currentTargetProdDate).getTime();
       });
       setProjects(sortedData);
     } catch (error) {
@@ -333,7 +332,7 @@ export default function ProjectsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {project.currentTargetProdDate
-                          ? format(parseLocalDate(project.currentTargetProdDate), 'MMM dd, yyyy')
+                          ? formatLocalDate(project.currentTargetProdDate)
                           : 'TBD'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
