@@ -474,6 +474,9 @@ export default function ProjectDetailPage({
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-16">
+                    #
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Step Name
                   </th>
@@ -494,12 +497,12 @@ export default function ProjectDetailPage({
               <tbody className="bg-white divide-y divide-gray-200">
                 {project.steps.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-4 text-center text-gray-500">
+                    <td colSpan={6} className="px-4 py-4 text-center text-gray-500">
                       No steps added yet. Click "Add Step" to get started.
                     </td>
                   </tr>
                 ) : (
-                  project.steps.map((step) => {
+                  project.steps.map((step, index) => {
                     const stepDateShift = calculateDateShift(
                       step.baselineEndDate,
                       step.endDate
@@ -507,6 +510,9 @@ export default function ProjectDetailPage({
 
                     return (
                       <tr key={step.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm text-gray-600 font-medium">
+                          {index + 1}
+                        </td>
                         <td className="px-4 py-3 text-sm text-gray-900">{step.stepName}</td>
                         <td className="px-4 py-3">
                           <span

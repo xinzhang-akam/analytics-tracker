@@ -8,28 +8,44 @@ import { isReleaseStep } from '@/lib/constants';
 async function calculateProjectStatus(projectId: string): Promise<ProjectStatus> {
   const steps = await prisma.projectStep.findMany({
     where: { projectId },
-    orderBy: { sequenceOrder: 'desc' },
+    orderBy: { sequenceOrder: 'asc' }, // Sequential order for evaluation
   });
 
+  // Rule 1: No steps exist
   if (steps.length === 0) {
     return 'NOT_STARTED';
   }
 
-  const allCompleted = steps.every((step) => step.status === 'COMPLETED');
-  if (allCompleted) {
+  // Rule 2: COMPLETED - If Launch Dashboard or Launch Data Source step is COMPLETED
+  const launchStep = steps.find(
+    (step) => step.stepName === 'Launch Dashboard' || step.stepName === 'Launch Data Source'
+  );
+  if (launchStep && launchStep.status === 'COMPLETED') {
     return 'COMPLETED';
   }
 
+  // Rule 3: BLOCKED - If any step is BLOCKED AND all subsequent steps are NOT_STARTED
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+    if (step.status === 'BLOCKED') {
+      // Check if all subsequent steps are NOT_STARTED
+      const subsequentSteps = steps.slice(i + 1);
+      const allSubsequentNotStarted = subsequentSteps.every(
+        (s) => s.status === 'NOT_STARTED'
+      );
+      if (allSubsequentNotStarted) {
+        return 'BLOCKED';
+      }
+    }
+  }
+
+  // Rule 4: NOT_STARTED - If all steps are NOT_STARTED
   const allNotStarted = steps.every((step) => step.status === 'NOT_STARTED');
   if (allNotStarted) {
     return 'NOT_STARTED';
   }
 
-  const mostRecentStep = steps[0];
-  if (mostRecentStep && mostRecentStep.status === 'BLOCKED') {
-    return 'BLOCKED';
-  }
-
+  // Rule 5: IN_PROGRESS - Default case (any step is IN_PROGRESS or mixed states)
   return 'IN_PROGRESS';
 }
 
