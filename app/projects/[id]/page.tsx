@@ -56,15 +56,12 @@ export default function ProjectDetailPage({
   const [editingStep, setEditingStep] = useState<Step | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [newStep, setNewStep] = useState({
-    stepName: 'Create BRD',
-    startDate: '',
-    workdaysRequired: 1,
-    releaseDate: '',
+    stepName: 'Business Requirements',
+    targetDate: '',
   });
   const [editStepForm, setEditStepForm] = useState({
     status: 'IN_PROGRESS',
-    startDate: '',
-    endDate: '',
+    targetDate: '',
     reasonForChange: '',
   });
 
@@ -79,15 +76,15 @@ export default function ProjectDetailPage({
 
       // Filter out launch steps mutually exclusively
       const hasLaunchDashboard = addedStepNames.has('Launch Dashboard');
-      const hasLaunchSSDataSource = addedStepNames.has('Launch SS Data Source');
+      const hasLaunchDataSource = addedStepNames.has('Launch Data Source');
 
       const availableSteps = STEP_NAMES.filter((name) => {
         // If step already added, exclude it
         if (addedStepNames.has(name)) return false;
 
         // Mutually exclusive launch steps
-        if (name === 'Launch Dashboard' && hasLaunchSSDataSource) return false;
-        if (name === 'Launch SS Data Source' && hasLaunchDashboard) return false;
+        if (name === 'Launch Dashboard' && hasLaunchDataSource) return false;
+        if (name === 'Launch Data Source' && hasLaunchDashboard) return false;
 
         return true;
       });
@@ -96,9 +93,7 @@ export default function ProjectDetailPage({
       if (availableSteps.length > 0 && !availableSteps.includes(newStep.stepName as any)) {
         setNewStep({
           stepName: availableSteps[0],
-          startDate: '',
-          workdaysRequired: 1,
-          releaseDate: '',
+          targetDate: '',
         });
       }
     }
@@ -111,15 +106,15 @@ export default function ProjectDetailPage({
 
       // Filter out launch steps mutually exclusively
       const hasLaunchDashboard = addedStepNames.has('Launch Dashboard');
-      const hasLaunchSSDataSource = addedStepNames.has('Launch SS Data Source');
+      const hasLaunchDataSource = addedStepNames.has('Launch Data Source');
 
       const availableSteps = STEP_NAMES.filter((name) => {
         // If step already added, exclude it
         if (addedStepNames.has(name)) return false;
 
         // Mutually exclusive launch steps
-        if (name === 'Launch Dashboard' && hasLaunchSSDataSource) return false;
-        if (name === 'Launch SS Data Source' && hasLaunchDashboard) return false;
+        if (name === 'Launch Dashboard' && hasLaunchDataSource) return false;
+        if (name === 'Launch Data Source' && hasLaunchDashboard) return false;
 
         return true;
       });
@@ -127,9 +122,7 @@ export default function ProjectDetailPage({
       if (availableSteps.length > 0) {
         setNewStep({
           stepName: availableSteps[0],
-          startDate: '',
-          workdaysRequired: 1,
-          releaseDate: '',
+          targetDate: '',
         });
       }
     }
@@ -155,15 +148,15 @@ export default function ProjectDetailPage({
 
     // Filter out launch steps mutually exclusively
     const hasLaunchDashboard = addedStepNames.has('Launch Dashboard');
-    const hasLaunchSSDataSource = addedStepNames.has('Launch SS Data Source');
+    const hasLaunchDataSource = addedStepNames.has('Launch Data Source');
 
     const currentAvailableSteps = STEP_NAMES.filter((name) => {
       // If step already added, exclude it
       if (addedStepNames.has(name)) return false;
 
       // Mutually exclusive launch steps
-      if (name === 'Launch Dashboard' && hasLaunchSSDataSource) return false;
-      if (name === 'Launch SS Data Source' && hasLaunchDashboard) return false;
+      if (name === 'Launch Dashboard' && hasLaunchDataSource) return false;
+      if (name === 'Launch Data Source' && hasLaunchDashboard) return false;
 
       return true;
     });
@@ -174,8 +167,6 @@ export default function ProjectDetailPage({
       return;
     }
 
-    const isRelease = isReleaseStep(newStep.stepName);
-
     try {
       const response = await fetch('/api/steps', {
         method: 'POST',
@@ -185,9 +176,8 @@ export default function ProjectDetailPage({
         body: JSON.stringify({
           projectId: id,
           stepName: newStep.stepName,
-          startDate: isRelease ? newStep.releaseDate : newStep.startDate,
-          workdaysRequired: isRelease ? 0 : newStep.workdaysRequired,
-          releaseDate: isRelease ? newStep.releaseDate : undefined,
+          startDate: newStep.targetDate,
+          endDate: newStep.targetDate,
         }),
       });
 
@@ -211,8 +201,7 @@ export default function ProjectDetailPage({
     setEditingStep(step);
     setEditStepForm({
       status: step.status,
-      startDate: format(new Date(step.startDate), 'yyyy-MM-dd'),
-      endDate: format(new Date(step.endDate), 'yyyy-MM-dd'),
+      targetDate: format(new Date(step.endDate), 'yyyy-MM-dd'),
       reasonForChange: '',
     });
     setShowEditModal(true);
@@ -223,28 +212,28 @@ export default function ProjectDetailPage({
 
     if (!editingStep) return;
 
-    // Check if dates changed
-    const originalStartDate = format(new Date(editingStep.startDate), 'yyyy-MM-dd');
-    const originalEndDate = format(new Date(editingStep.endDate), 'yyyy-MM-dd');
-    const startDateChanged = editStepForm.startDate !== originalStartDate;
-    const endDateChanged = editStepForm.endDate !== originalEndDate;
+    // Check if target date changed from baseline
+    const baselineEndDate = editingStep.baselineEndDate
+      ? format(new Date(editingStep.baselineEndDate), 'yyyy-MM-dd')
+      : format(new Date(editingStep.endDate), 'yyyy-MM-dd');
+    const targetDateChanged = editStepForm.targetDate !== baselineEndDate;
 
     // Validation: Future step completion
     if (editStepForm.status === 'COMPLETED') {
-      const endDate = new Date(editStepForm.endDate);
+      const targetDate = new Date(editStepForm.targetDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      endDate.setHours(0, 0, 0, 0);
+      targetDate.setHours(0, 0, 0, 0);
 
-      if (endDate > today) {
-        alert('Step end date must be on or before today to mark as Completed.');
+      if (targetDate > today) {
+        alert('Step target date must be on or before today to mark as Completed.');
         return;
       }
     }
 
-    // Validation: Reason required ONLY when end date changes
-    if (endDateChanged && !editStepForm.reasonForChange) {
-      alert('Reason for change is required when modifying the end date.');
+    // Validation: Reason required ONLY when target date differs from baseline
+    if (targetDateChanged && !editStepForm.reasonForChange) {
+      alert('Reason for change is required when modifying the target date.');
       return;
     }
 
@@ -256,9 +245,8 @@ export default function ProjectDetailPage({
         },
         body: JSON.stringify({
           status: editStepForm.status,
-          startDate: startDateChanged ? editStepForm.startDate : undefined,
-          endDate: endDateChanged ? editStepForm.endDate : undefined,
-          reasonForChange: endDateChanged ? editStepForm.reasonForChange : undefined,
+          endDate: targetDateChanged ? editStepForm.targetDate : undefined,
+          reasonForChange: targetDateChanged ? editStepForm.reasonForChange : undefined,
         }),
       });
 
@@ -340,15 +328,15 @@ export default function ProjectDetailPage({
 
   // Filter out launch steps mutually exclusively
   const hasLaunchDashboard = addedStepNames.has('Launch Dashboard');
-  const hasLaunchSSDataSource = addedStepNames.has('Launch SS Data Source');
+  const hasLaunchDataSource = addedStepNames.has('Launch Data Source');
 
   const availableSteps = STEP_NAMES.filter((name) => {
     // If step already added, exclude it
     if (addedStepNames.has(name)) return false;
 
     // Mutually exclusive launch steps
-    if (name === 'Launch Dashboard' && hasLaunchSSDataSource) return false;
-    if (name === 'Launch SS Data Source' && hasLaunchDashboard) return false;
+    if (name === 'Launch Dashboard' && hasLaunchDataSource) return false;
+    if (name === 'Launch Data Source' && hasLaunchDashboard) return false;
 
     return true;
   });
@@ -450,50 +438,18 @@ export default function ProjectDetailPage({
                   )}
                 </div>
 
-                {isReleaseStep(newStep.stepName) ? (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Release Date *
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={newStep.releaseDate}
-                      onChange={(e) => setNewStep({ ...newStep, releaseDate: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
-                    />
-                  </div>
-                ) : (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Start Date *
-                      </label>
-                      <input
-                        type="date"
-                        required
-                        value={newStep.startDate}
-                        onChange={(e) => setNewStep({ ...newStep, startDate: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Workdays Required *
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        required
-                        value={newStep.workdaysRequired}
-                        onChange={(e) =>
-                          setNewStep({ ...newStep, workdaysRequired: parseInt(e.target.value) })
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
-                      />
-                    </div>
-                  </>
-                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Target Date *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={newStep.targetDate}
+                    onChange={(e) => setNewStep({ ...newStep, targetDate: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
+                  />
+                </div>
 
                 <div className="flex gap-2">
                   <button
@@ -644,62 +600,28 @@ export default function ProjectDetailPage({
                   </select>
                 </div>
 
-                {isReleaseStep(editingStep.stepName) ? (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Release Date
-                    </label>
-                    <input
-                      type="date"
-                      value={editStepForm.endDate}
-                      onChange={(e) =>
-                        setEditStepForm({
-                          ...editStepForm,
-                          startDate: e.target.value,
-                          endDate: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
-                    />
-                  </div>
-                ) : (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Override Start Date
-                      </label>
-                      <input
-                        type="date"
-                        value={editStepForm.startDate}
-                        onChange={(e) =>
-                          setEditStepForm({ ...editStepForm, startDate: e.target.value })
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Override End Date
-                      </label>
-                      <input
-                        type="date"
-                        value={editStepForm.endDate}
-                        onChange={(e) =>
-                          setEditStepForm({ ...editStepForm, endDate: e.target.value })
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
-                      />
-                    </div>
-                  </>
-                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Target Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editStepForm.targetDate}
+                    onChange={(e) =>
+                      setEditStepForm({ ...editStepForm, targetDate: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
+                  />
+                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Reason for Change
                     {editingStep &&
-                      format(new Date(editingStep.endDate), 'yyyy-MM-dd') !==
-                        editStepForm.endDate && ' *'}
+                      (editingStep.baselineEndDate
+                        ? format(new Date(editingStep.baselineEndDate), 'yyyy-MM-dd')
+                        : format(new Date(editingStep.endDate), 'yyyy-MM-dd')) !==
+                        editStepForm.targetDate && ' *'}
                   </label>
                   <textarea
                     value={editStepForm.reasonForChange}
@@ -708,11 +630,7 @@ export default function ProjectDetailPage({
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
                     rows={3}
-                    placeholder={
-                      isReleaseStep(editingStep.stepName)
-                        ? 'Required when changing release date'
-                        : 'Required when changing end date'
-                    }
+                    placeholder="Required when target date differs from baseline"
                   />
                 </div>
 

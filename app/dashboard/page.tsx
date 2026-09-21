@@ -142,12 +142,12 @@ export default function DashboardPage() {
   // Use standardized step order from constants (Launch = Launch Dashboard)
   // ALWAYS show all 7 standard columns
   const DASHBOARD_STEP_ORDER = [
-    'Create BRD',
-    'Create Wireframe',
+    'Business Requirements',
+    'Wireframe',
     'Data Integration',
-    'Create Data Source',
-    'Create Dashboard',
-    'User Feedback',
+    'Data Source',
+    'Dashboard',
+    'Feedback',
     'Launch',
   ];
 
@@ -155,10 +155,10 @@ export default function DashboardPage() {
   const allStepNames = DASHBOARD_STEP_ORDER;
 
   const getStepStatus = (project: Project, stepName: string): string => {
-    // Handle "Launch" by looking for either Launch Dashboard or Launch SS Data Source
+    // Handle "Launch" by looking for either Launch Dashboard or Launch Data Source
     if (stepName === 'Launch') {
       const launchStep = project.steps.find(
-        (s) => s.stepName === 'Launch Dashboard' || s.stepName === 'Launch SS Data Source'
+        (s) => s.stepName === 'Launch Dashboard' || s.stepName === 'Launch Data Source'
       );
       // If step exists, return its status; otherwise return 'NA'
       return launchStep ? launchStep.status : 'NA';

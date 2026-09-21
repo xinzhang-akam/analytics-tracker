@@ -41,8 +41,7 @@ export async function POST(request: Request) {
       projectId,
       stepName,
       startDate,
-      workdaysRequired,
-      releaseDate,
+      endDate,
     } = body;
 
     // Check for duplicate step in this project
@@ -81,40 +80,27 @@ export async function POST(request: Request) {
     // Calculate sequence order
     const sequenceOrder = (project.steps[0]?.sequenceOrder || 0) + 1;
 
-    let calculatedStartDate: Date;
-    let calculatedEndDate: Date;
-    let calculatedWorkdays: number;
+    // Parse target date as local date without timezone conversion
+    const [year, month, day] = startDate.split('-').map(Number);
+    const targetDate = new Date(year, month - 1, day);
 
-    // Handle release steps differently
-    if (isReleaseStep(stepName)) {
-      // For release steps, start date = end date = release date
-      // Parse as local date without timezone conversion
-      const [year, month, day] = releaseDate.split('-').map(Number);
-      calculatedStartDate = new Date(year, month - 1, day);
-      calculatedEndDate = new Date(year, month - 1, day);
-      calculatedWorkdays = 0;
-    } else {
-      // For regular steps, calculate end date from start date + workdays
-      // Parse as local date without timezone conversion
-      const [year, month, day] = startDate.split('-').map(Number);
-      calculatedStartDate = new Date(year, month - 1, day);
-      calculatedEndDate = addWorkdays(calculatedStartDate, workdaysRequired);
-      calculatedWorkdays = workdaysRequired;
-    }
+    // All steps now use the same target date for both start and end
+    const calculatedStartDate = targetDate;
+    const calculatedEndDate = targetDate;
 
-    // Automated status logic: if start date <= today, status = IN_PROGRESS, else NOT_STARTED
+    // Automated status logic: if target date <= today, status = IN_PROGRESS, else NOT_STARTED
     const today = startOfDay(new Date());
     const autoStatus: StepStatus = isBefore(calculatedStartDate, today) || isSameDay(calculatedStartDate, today)
       ? StepStatus.IN_PROGRESS
       : StepStatus.NOT_STARTED;
 
-    // Create the step
+    // Create the step - workdaysRequired is no longer used but kept for schema compatibility
     const step = await prisma.projectStep.create({
       data: {
         projectId,
         stepName,
         sequenceOrder,
-        workdaysRequired: calculatedWorkdays,
+        workdaysRequired: 0,
         startDate: calculatedStartDate,
         endDate: calculatedEndDate,
         baselineEndDate: calculatedEndDate,

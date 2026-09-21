@@ -40,7 +40,7 @@ async function main() {
       steps: {
         create: [
           {
-            stepName: 'Create BRD',
+            stepName: 'Business Requirements',
             sequenceOrder: 1,
             workdaysRequired: 3,
             startDate: startDate,
@@ -49,7 +49,7 @@ async function main() {
             status: 'COMPLETED',
           },
           {
-            stepName: 'Create Wireframe',
+            stepName: 'Wireframe',
             sequenceOrder: 2,
             workdaysRequired: 2,
             startDate: addWorkdays(startDate, 4),
@@ -67,7 +67,7 @@ async function main() {
             status: 'IN_PROGRESS',
           },
           {
-            stepName: 'Create Dashboard',
+            stepName: 'Dashboard',
             sequenceOrder: 4,
             workdaysRequired: 7,
             startDate: addWorkdays(startDate, 13),
@@ -76,7 +76,7 @@ async function main() {
             status: 'NOT_STARTED',
           },
           {
-            stepName: 'User Feedback',
+            stepName: 'Feedback',
             sequenceOrder: 5,
             workdaysRequired: 3,
             startDate: addWorkdays(startDate, 21),
@@ -119,7 +119,7 @@ async function main() {
       steps: {
         create: [
           {
-            stepName: 'Create BRD',
+            stepName: 'Business Requirements',
             sequenceOrder: 1,
             workdaysRequired: 4,
             startDate: project2StartDate,
@@ -139,7 +139,7 @@ async function main() {
             reasonForDelay: 'Waiting on API access from infrastructure team',
           },
           {
-            stepName: 'Create Dashboard',
+            stepName: 'Dashboard',
             sequenceOrder: 3,
             workdaysRequired: 8,
             startDate: addWorkdays(project2StartDate, 14),
@@ -182,7 +182,7 @@ async function main() {
       steps: {
         create: [
           {
-            stepName: 'Create BRD',
+            stepName: 'Business Requirements',
             sequenceOrder: 1,
             workdaysRequired: 5,
             startDate: project3StartDate,
@@ -209,7 +209,7 @@ async function main() {
             status: 'NOT_STARTED',
           },
           {
-            stepName: 'Launch SS Data Source',
+            stepName: 'Launch Data Source',
             sequenceOrder: 4,
             workdaysRequired: 0,
             startDate: addWorkdays(project3StartDate, 22),
@@ -242,7 +242,7 @@ async function main() {
       steps: {
         create: [
           {
-            stepName: 'Create BRD',
+            stepName: 'Business Requirements',
             sequenceOrder: 1,
             workdaysRequired: 3,
             startDate: project4StartDate,
@@ -251,7 +251,7 @@ async function main() {
             status: 'COMPLETED',
           },
           {
-            stepName: 'Create Wireframe',
+            stepName: 'Wireframe',
             sequenceOrder: 2,
             workdaysRequired: 2,
             startDate: addWorkdays(project4StartDate, 4),
@@ -260,7 +260,7 @@ async function main() {
             status: 'COMPLETED',
           },
           {
-            stepName: 'Create Data Source',
+            stepName: 'Data Source',
             sequenceOrder: 3,
             workdaysRequired: 5,
             startDate: addWorkdays(project4StartDate, 7),
@@ -269,7 +269,7 @@ async function main() {
             status: 'COMPLETED',
           },
           {
-            stepName: 'Create Dashboard',
+            stepName: 'Dashboard',
             sequenceOrder: 4,
             workdaysRequired: 6,
             startDate: addWorkdays(project4StartDate, 13),
@@ -278,7 +278,7 @@ async function main() {
             status: 'COMPLETED',
           },
           {
-            stepName: 'User Feedback',
+            stepName: 'Feedback',
             sequenceOrder: 5,
             workdaysRequired: 2,
             startDate: addWorkdays(project4StartDate, 20),
@@ -320,7 +320,7 @@ async function main() {
       steps: {
         create: [
           {
-            stepName: 'Create BRD',
+            stepName: 'Business Requirements',
             sequenceOrder: 1,
             workdaysRequired: 4,
             startDate: project5StartDate,
@@ -329,7 +329,7 @@ async function main() {
             status: 'NOT_STARTED',
           },
           {
-            stepName: 'Create Wireframe',
+            stepName: 'Wireframe',
             sequenceOrder: 2,
             workdaysRequired: 3,
             startDate: addWorkdays(project5StartDate, 5),
