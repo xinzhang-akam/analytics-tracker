@@ -131,6 +131,21 @@ export default function DashboardPage() {
     return acc;
   }, {} as Record<string, Project[]>);
 
+  // Sort projects within each domain by date (ascending - earliest first)
+  Object.keys(groupedProjects).forEach((domain) => {
+    groupedProjects[domain].sort((a, b) => {
+      // Projects without dates go to the end
+      if (!a.currentTargetProdDate && !b.currentTargetProdDate) return 0;
+      if (!a.currentTargetProdDate) return 1;
+      if (!b.currentTargetProdDate) return -1;
+
+      // Sort by date ascending
+      const dateA = parseLocalDate(a.currentTargetProdDate);
+      const dateB = parseLocalDate(b.currentTargetProdDate);
+      return dateA.getTime() - dateB.getTime();
+    });
+  });
+
   const totalProjects = filteredProjects.length;
   const onTrackProjects = filteredProjects.filter((p) => p.totalDateShifts === 0).length;
   const delayedProjects = filteredProjects.filter((p) => p.totalDateShifts > 0).length;
