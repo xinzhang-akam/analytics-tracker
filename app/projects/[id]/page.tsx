@@ -67,6 +67,9 @@ export default function ProjectDetailPage({
   const [initialTargetDate, setInitialTargetDate] = useState('');
   const [cascadeShift, setCascadeShift] = useState(true);
   const [launchDashboardDate, setLaunchDashboardDate] = useState('');
+  const [isEditingOwner, setIsEditingOwner] = useState(false);
+  const [newOwner, setNewOwner] = useState('');
+  const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
     fetchProject();
@@ -298,6 +301,48 @@ export default function ProjectDetailPage({
     }
   };
 
+  const handleEditOwner = () => {
+    if (project) {
+      setNewOwner(project.owner);
+      setIsEditingOwner(true);
+    }
+  };
+
+  const handleSaveOwner = async () => {
+    if (!newOwner.trim()) {
+      alert('Owner name cannot be empty');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/projects/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          owner: newOwner,
+        }),
+      });
+
+      if (response.ok) {
+        setIsEditingOwner(false);
+        fetchProject();
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to update owner');
+      }
+    } catch (error) {
+      console.error('Error updating owner:', error);
+      alert('Failed to update owner');
+    }
+  };
+
+  const handleCancelEditOwner = () => {
+    setIsEditingOwner(false);
+    setNewOwner('');
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'IN_PROGRESS':
@@ -375,8 +420,41 @@ export default function ProjectDetailPage({
               <div className="text-lg text-gray-900">{project.domainCategory}</div>
             </div>
             <div>
-              <div className="text-sm text-gray-600">Owner</div>
-              <div className="text-lg text-gray-900">{project.owner}</div>
+              <div className="text-sm text-gray-600 mb-1">Owner</div>
+              {isEditingOwner ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newOwner}
+                    onChange={(e) => setNewOwner(e.target.value)}
+                    className="px-2 py-1 border border-gray-300 rounded-md text-sm text-gray-900"
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleSaveOwner}
+                    className="px-2 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={handleCancelEditOwner}
+                    className="px-2 py-1 bg-gray-200 text-gray-700 text-sm rounded-md hover:bg-gray-300"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <div className="text-lg text-gray-900">{project.owner}</div>
+                  <button
+                    onClick={handleEditOwner}
+                    className="text-blue-600 hover:text-blue-800 text-sm"
+                    title="Edit Owner"
+                  >
+                    ✏️
+                  </button>
+                </div>
+              )}
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-2">Go-Live Date</div>
@@ -407,6 +485,75 @@ export default function ProjectDetailPage({
                 </div>
               ) : (
                 <div className="text-lg text-gray-400">TBD</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* How-To Guide */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-5 mb-6 shadow-sm">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div
+                className="flex items-center gap-2 cursor-pointer"
+                onClick={() => setShowGuide(!showGuide)}
+              >
+                <span className="text-2xl">💡</span>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Quick Guide: Managing Project Steps
+                </h3>
+                <span className="text-gray-500 text-sm">
+                  {showGuide ? '(Click to collapse)' : '(Click to expand)'}
+                </span>
+              </div>
+
+              {showGuide && (
+                <div className="mt-4 space-y-3 text-sm text-gray-700">
+                  <div className="flex items-start gap-2">
+                    <span className="text-blue-600 font-semibold mt-0.5">•</span>
+                    <div>
+                      <span className="font-semibold">Adding Steps:</span> Add project steps and assign a Target Date.
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2">
+                    <span className="text-blue-600 font-semibold mt-0.5">•</span>
+                    <div>
+                      <span className="font-semibold">Editing Dates & Cascading:</span> Changing a Target Date triggers the Auto-shift option.
+                      <div className="ml-4 mt-1 space-y-1">
+                        <div>
+                          <span className="font-medium">- Standard Steps:</span> Automatically shift by the same number of days.
+                        </div>
+                        <div>
+                          <span className="font-medium">- Launch Dashboard:</span> Will not auto-shift. You must manually select a date to ensure alignment with the{' '}
+                          <a
+                            href="https://docs.google.com/spreadsheets/d/1hG9m_MYnDfGVd3IPlCbt2XVDlHGBHznSS7_khE_OYnU/edit?usp=sharing"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline"
+                          >
+                            A360 Release Calendar
+                          </a>
+                          .
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2">
+                    <span className="text-blue-600 font-semibold mt-0.5">•</span>
+                    <div>
+                      <span className="font-semibold">Reason for Change:</span> Only required when you <span className="italic">manually</span> change a target date.
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2">
+                    <span className="text-blue-600 font-semibold mt-0.5">•</span>
+                    <div>
+                      <span className="font-semibold">Status Updates:</span> Keep statuses updated (🔵 In Progress, 🟢 Completed, 🔴 Blocked).
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           </div>
