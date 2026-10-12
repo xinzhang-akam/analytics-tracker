@@ -11,6 +11,8 @@ interface Step {
   stepName: string;
   status: string;
   reasonForDelay?: string | null;
+  endDate: string;
+  baselineEndDate: string | null;
 }
 
 interface Project {
@@ -169,19 +171,26 @@ export default function DashboardPage() {
   // Always use all 7 standard steps for the matrix
   const allStepNames = DASHBOARD_STEP_ORDER;
 
-  const getStepStatus = (project: Project, stepName: string): string => {
+  const getStepData = (project: Project, stepName: string): { status: string; step: Step | null } => {
     // Handle "Launch" by looking for either Launch Dashboard or Launch Data Source
     if (stepName === 'Launch') {
       const launchStep = project.steps.find(
         (s) => s.stepName === 'Launch Dashboard' || s.stepName === 'Launch Data Source'
       );
       // If step exists, return its status; otherwise return 'NA'
-      return launchStep ? launchStep.status : 'NA';
+      return { status: launchStep ? launchStep.status : 'NA', step: launchStep || null };
     }
 
     const step = project.steps.find((s) => s.stepName === stepName);
     // If step exists, return its status; otherwise return 'NA'
-    return step ? step.status : 'NA';
+    return { status: step ? step.status : 'NA', step: step || null };
+  };
+
+  const calculateStepVariance = (step: Step | null): number => {
+    if (!step || !step.baselineEndDate) return 0;
+    const baseline = parseLocalDate(step.baselineEndDate);
+    const current = parseLocalDate(step.endDate);
+    return Math.ceil((current.getTime() - baseline.getTime()) / (1000 * 60 * 60 * 24));
   };
 
   if (loading) {
@@ -395,15 +404,28 @@ export default function DashboardPage() {
                           </td>
                           {allStepNames.length > 0 ? (
                             allStepNames.map((stepName) => {
-                              const status = getStepStatus(project, stepName);
+                              const { status, step } = getStepData(project, stepName);
+                              const variance = calculateStepVariance(step);
                               return (
                                 <td key={stepName} className="px-3 py-3 text-center">
-                                  <div
-                                    className={`w-4 h-4 rounded-full mx-auto ${getStatusColor(
-                                      status
-                                    )}`}
-                                    title={`${stepName}: ${status}`}
-                                  />
+                                  <div className="flex flex-col items-center gap-1">
+                                    <div
+                                      className={`w-4 h-4 rounded-full ${getStatusColor(
+                                        status
+                                      )}`}
+                                      title={`${stepName}: ${status}`}
+                                    />
+                                    {variance !== 0 && (
+                                      <span
+                                        className={`text-[10px] font-semibold ${
+                                          variance > 0 ? 'text-red-600' : 'text-green-600'
+                                        }`}
+                                        title={`${variance > 0 ? 'Delayed' : 'Advanced'} by ${Math.abs(variance)} days`}
+                                      >
+                                        {variance > 0 ? '+' : ''}{variance}d
+                                      </span>
+                                    )}
+                                  </div>
                                 </td>
                               );
                             })

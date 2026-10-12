@@ -134,11 +134,13 @@ export async function PATCH(
         updateData.endDate = newEndDate;
         updateData.reasonForDelay = body.reasonForChange;
 
-        // If end date is pushed out, cascade to downstream steps
-        if (workdayShift > 0) {
+        // Cascade to downstream steps if enabled and workdayShift is non-zero
+        if (body.cascadeShift !== false && workdayShift !== 0) {
           const downstreamSteps = currentStep.project.steps.filter(
-            (s) => s.sequenceOrder > currentStep.sequenceOrder
+            (s) => s.sequenceOrder > currentStep.sequenceOrder && s.status !== 'COMPLETED'
           );
+
+          const cascadeReason = `Cascaded from ${currentStep.stepName} shift`;
 
           for (const downstreamStep of downstreamSteps) {
             const currentStartDate = new Date(downstreamStep.startDate);
@@ -147,11 +149,24 @@ export async function PATCH(
             const newStartDate = addWorkdays(currentStartDate, workdayShift);
             const newEndDate = addWorkdays(currentEndDate, workdayShift);
 
+            // Create audit log for cascaded step
+            await prisma.dateChangeLog.create({
+              data: {
+                stepId: downstreamStep.id,
+                previousEndDate: currentEndDate,
+                newEndDate: newEndDate,
+                daysShifted: Math.abs(workdayShift),
+                reasonForChange: cascadeReason,
+              },
+            });
+
             await prisma.projectStep.update({
               where: { id: downstreamStep.id },
               data: {
                 startDate: newStartDate,
                 endDate: newEndDate,
+                shiftCount: (downstreamStep.shiftCount || 0) + 1,
+                reasonForDelay: cascadeReason,
               },
             });
           }
@@ -180,7 +195,7 @@ export async function PATCH(
             isReleaseStep(s.stepName)
           );
 
-          if (releaseStep && workdayShift > 0) {
+          if (releaseStep && workdayShift !== 0 && body.cascadeShift !== false) {
             const releaseEndDate = new Date(releaseStep.endDate);
             const newReleaseEndDate = addWorkdays(releaseEndDate, workdayShift);
 

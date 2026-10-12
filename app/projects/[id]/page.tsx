@@ -64,6 +64,8 @@ export default function ProjectDetailPage({
     targetDate: '',
     reasonForChange: '',
   });
+  const [initialTargetDate, setInitialTargetDate] = useState('');
+  const [cascadeShift, setCascadeShift] = useState(true);
 
   useEffect(() => {
     fetchProject();
@@ -199,11 +201,14 @@ export default function ProjectDetailPage({
 
   const handleEditStep = (step: Step) => {
     setEditingStep(step);
+    const currentTargetDate = formatDateForInput(step.endDate);
     setEditStepForm({
       status: step.status,
-      targetDate: formatDateForInput(step.endDate),
+      targetDate: currentTargetDate,
       reasonForChange: '',
     });
+    setInitialTargetDate(currentTargetDate);
+    setCascadeShift(true);
     setShowEditModal(true);
   };
 
@@ -212,11 +217,8 @@ export default function ProjectDetailPage({
 
     if (!editingStep) return;
 
-    // Check if target date changed from baseline
-    const baselineEndDate = editingStep.baselineEndDate
-      ? formatDateForInput(editingStep.baselineEndDate)
-      : formatDateForInput(editingStep.endDate);
-    const targetDateChanged = editStepForm.targetDate !== baselineEndDate;
+    // Check if target date changed from INITIAL form value (not baseline)
+    const targetDateChanged = editStepForm.targetDate !== initialTargetDate;
 
     // Validation: Future step completion
     if (editStepForm.status === 'COMPLETED') {
@@ -231,7 +233,7 @@ export default function ProjectDetailPage({
       }
     }
 
-    // Validation: Reason required ONLY when target date differs from baseline
+    // Validation: Reason required ONLY when user manually changed target date in current session
     if (targetDateChanged && !editStepForm.reasonForChange) {
       alert('Reason for change is required when modifying the target date.');
       return;
@@ -247,6 +249,7 @@ export default function ProjectDetailPage({
           status: editStepForm.status,
           endDate: targetDateChanged ? editStepForm.targetDate : undefined,
           reasonForChange: targetDateChanged ? editStepForm.reasonForChange : undefined,
+          cascadeShift: targetDateChanged ? cascadeShift : undefined,
         }),
       });
 
@@ -628,14 +631,38 @@ export default function ProjectDetailPage({
                   )}
                 </div>
 
+                {editStepForm.targetDate !== initialTargetDate && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                    <div className="flex items-center mb-2">
+                      <input
+                        type="checkbox"
+                        id="cascadeShift"
+                        checked={cascadeShift}
+                        onChange={(e) => setCascadeShift(e.target.checked)}
+                        className="h-4 w-4 text-blue-600 rounded border-gray-300"
+                      />
+                      <label htmlFor="cascadeShift" className="ml-2 text-sm font-medium text-gray-900">
+                        Auto-shift downstream incomplete steps by{' '}
+                        {(() => {
+                          const delta = differenceInDays(
+                            parseLocalDate(editStepForm.targetDate),
+                            parseLocalDate(initialTargetDate)
+                          );
+                          return delta > 0 ? `+${delta}` : delta;
+                        })()}{' '}
+                        days
+                      </label>
+                    </div>
+                    <p className="text-xs text-gray-600">
+                      When enabled, all subsequent incomplete steps will be automatically adjusted by the same date shift.
+                    </p>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Reason for Change
-                    {editingStep &&
-                      (editingStep.baselineEndDate
-                        ? formatDateForInput(editingStep.baselineEndDate)
-                        : formatDateForInput(editingStep.endDate)) !==
-                        editStepForm.targetDate && ' *'}
+                    {editStepForm.targetDate !== initialTargetDate && ' *'}
                   </label>
                   <textarea
                     value={editStepForm.reasonForChange}
@@ -644,7 +671,7 @@ export default function ProjectDetailPage({
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
                     rows={3}
-                    placeholder="Required when target date differs from baseline"
+                    placeholder="Required when target date is manually changed"
                   />
                 </div>
 
