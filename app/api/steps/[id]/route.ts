@@ -137,7 +137,9 @@ export async function PATCH(
         // Cascade to downstream steps if enabled and workdayShift is non-zero
         if (body.cascadeShift !== false && workdayShift !== 0) {
           const downstreamSteps = currentStep.project.steps.filter(
-            (s) => s.sequenceOrder > currentStep.sequenceOrder && s.status !== 'COMPLETED'
+            (s) => s.sequenceOrder > currentStep.sequenceOrder &&
+            s.status !== 'COMPLETED' &&
+            s.stepName !== 'Launch Dashboard' // Exclude Launch Dashboard from automatic cascade
           );
 
           const cascadeReason = `Cascaded from ${currentStep.stepName} shift`;
@@ -170,6 +172,57 @@ export async function PATCH(
               },
             });
           }
+
+          // Handle Launch Dashboard separately with explicit user-selected date
+          if (body.launchDashboardDate) {
+            const launchStep = currentStep.project.steps.find(
+              (s) => s.stepName === 'Launch Dashboard' &&
+              s.sequenceOrder > currentStep.sequenceOrder &&
+              s.status !== 'COMPLETED'
+            );
+
+            if (launchStep) {
+              const [year, month, day] = body.launchDashboardDate.split('-').map(Number);
+              const newLaunchDate = new Date(year, month - 1, day);
+              const previousLaunchDate = new Date(launchStep.endDate);
+
+              // Only update if the date actually changed
+              if (newLaunchDate.toDateString() !== previousLaunchDate.toDateString()) {
+                const baselineLaunchEnd = launchStep.baselineEndDate
+                  ? new Date(launchStep.baselineEndDate)
+                  : previousLaunchDate;
+                const launchDaysShifted = getWorkdaysBetween(baselineLaunchEnd, newLaunchDate);
+
+                // Create audit log for Launch Dashboard (user-selected, not cascaded)
+                await prisma.dateChangeLog.create({
+                  data: {
+                    stepId: launchStep.id,
+                    previousEndDate: previousLaunchDate,
+                    newEndDate: newLaunchDate,
+                    daysShifted: Math.abs(launchDaysShifted),
+                    reasonForChange: body.reasonForChange, // Use the same user reason, not "Cascaded"
+                  },
+                });
+
+                await prisma.projectStep.update({
+                  where: { id: launchStep.id },
+                  data: {
+                    endDate: newLaunchDate,
+                    shiftCount: (launchStep.shiftCount || 0) + 1,
+                    reasonForDelay: body.reasonForChange, // Use user reason, not cascade reason
+                  },
+                });
+
+                // Update project go-live date to match Launch Dashboard
+                await prisma.project.update({
+                  where: { id: currentStep.projectId },
+                  data: {
+                    currentTargetProdDate: newLaunchDate,
+                  },
+                });
+              }
+            }
+          }
         }
 
         // If this is a release step, update project go-live date
@@ -190,22 +243,9 @@ export async function PATCH(
             },
           });
         } else {
-          // If not a release step, check if there's a release step and update its date too
-          const releaseStep = currentStep.project.steps.find((s) =>
-            isReleaseStep(s.stepName)
-          );
-
-          if (releaseStep && workdayShift !== 0 && body.cascadeShift !== false) {
-            const releaseEndDate = new Date(releaseStep.endDate);
-            const newReleaseEndDate = addWorkdays(releaseEndDate, workdayShift);
-
-            await prisma.project.update({
-              where: { id: currentStep.projectId },
-              data: {
-                currentTargetProdDate: newReleaseEndDate,
-              },
-            });
-          }
+          // If not a release step, the project go-live date is already updated above
+          // when handling Launch Dashboard separately (if applicable)
+          // No additional action needed here
         }
       }
     }

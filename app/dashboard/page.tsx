@@ -408,7 +408,7 @@ export default function DashboardPage() {
                               const variance = calculateStepVariance(step);
                               return (
                                 <td key={stepName} className="px-3 py-3 text-center">
-                                  <div className="flex flex-col items-center gap-1">
+                                  <div className="relative inline-flex items-center justify-center">
                                     <div
                                       className={`w-4 h-4 rounded-full ${getStatusColor(
                                         status
@@ -417,7 +417,7 @@ export default function DashboardPage() {
                                     />
                                     {variance !== 0 && (
                                       <span
-                                        className={`text-[10px] font-semibold ${
+                                        className={`absolute top-5 text-[10px] font-semibold whitespace-nowrap ${
                                           variance > 0 ? 'text-red-600' : 'text-green-600'
                                         }`}
                                         title={`${variance > 0 ? 'Delayed' : 'Advanced'} by ${Math.abs(variance)} days`}
@@ -472,9 +472,9 @@ export default function DashboardPage() {
                           <td className="px-4 py-3">
                             <div className="text-sm text-gray-600">
                               {(() => {
-                                // Get steps with override reasons
+                                // Get steps with user-entered reasons (filter out system-generated cascade reasons)
                                 const stepsWithReasons = project.steps.filter(
-                                  (step) => step.reasonForDelay
+                                  (step) => step.reasonForDelay && !step.reasonForDelay.includes('Cascaded')
                                 );
 
                                 if (stepsWithReasons.length === 0) {

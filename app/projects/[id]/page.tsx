@@ -66,6 +66,7 @@ export default function ProjectDetailPage({
   });
   const [initialTargetDate, setInitialTargetDate] = useState('');
   const [cascadeShift, setCascadeShift] = useState(true);
+  const [launchDashboardDate, setLaunchDashboardDate] = useState('');
 
   useEffect(() => {
     fetchProject();
@@ -209,6 +210,17 @@ export default function ProjectDetailPage({
     });
     setInitialTargetDate(currentTargetDate);
     setCascadeShift(true);
+
+    // Initialize Launch Dashboard date if it exists in the project
+    if (project) {
+      const launchStep = project.steps.find((s) => s.stepName === 'Launch Dashboard');
+      if (launchStep) {
+        setLaunchDashboardDate(formatDateForInput(launchStep.endDate));
+      } else {
+        setLaunchDashboardDate('');
+      }
+    }
+
     setShowEditModal(true);
   };
 
@@ -250,6 +262,7 @@ export default function ProjectDetailPage({
           endDate: targetDateChanged ? editStepForm.targetDate : undefined,
           reasonForChange: targetDateChanged ? editStepForm.reasonForChange : undefined,
           cascadeShift: targetDateChanged ? cascadeShift : undefined,
+          launchDashboardDate: targetDateChanged && cascadeShift && launchDashboardDate ? launchDashboardDate : undefined,
         }),
       });
 
@@ -656,6 +669,39 @@ export default function ProjectDetailPage({
                     <p className="text-xs text-gray-600">
                       When enabled, all subsequent incomplete steps will be automatically adjusted by the same date shift.
                     </p>
+
+                    {cascadeShift && editingStep && project && (() => {
+                      const launchStep = project.steps.find(
+                        (s) => s.stepName === 'Launch Dashboard' &&
+                        s.sequenceOrder > editingStep.sequenceOrder &&
+                        s.status !== 'COMPLETED'
+                      );
+                      return launchStep ? (
+                        <div className="mt-3 pt-3 border-t border-blue-300">
+                          <label className="block text-sm font-medium text-gray-900 mb-2">
+                            📅 Select new Launch Dashboard Date (must align with{' '}
+                            <a
+                              href="https://docs.google.com/spreadsheets/d/1hG9m_MYnDfGVd3IPlCbt2XVDlHGBHznSS7_khE_OYnU/edit?usp=sharing"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline"
+                            >
+                              A360 Release Calendar
+                            </a>
+                            )
+                          </label>
+                          <input
+                            type="date"
+                            value={launchDashboardDate}
+                            onChange={(e) => setLaunchDashboardDate(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+                          />
+                          <p className="text-xs text-gray-600 mt-1">
+                            Keep the current date or select a new launch window from the calendar.
+                          </p>
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
                 )}
 
